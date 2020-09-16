@@ -54,7 +54,7 @@ n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
 dom_u = 1
 dom_l = -1
-npop = 10
+npop = 100
 gens = 30
 mutation = 0.2
 last_best = 0
@@ -76,6 +76,7 @@ def norm(x, pfit_pop):
     else:
         x_norm = 0
 
+
     if x_norm <= 0:
         x_norm = 0.0000000001
     return x_norm
@@ -85,77 +86,128 @@ def norm(x, pfit_pop):
 def evaluate(x):
     return np.array(list(map(lambda y: simulation(env,y), x)))
 
+def scramble_pop(pop, fit_pop, fraction):
+    """this function deletes a worst fraction of the population
+    and replaces them with random ones, so as to keep diversity up"""
 
-# tournament
-def tournament(pop, island):
-    c1 =  np.random.randint(0,pop.shape[0], 1)
-    c2 =  np.random.randint(0,pop.shape[0], 1)
+    ranked_worst = np.argsort(fit_pop)
 
-    if fit_pop_d[island][c1] > fit_pop_d[island][c2]:
-        return pop[c1][0]
-    else:
-        return pop[c2][0]
+    for rank in ranked_worst[:int(fraction * npop)]:
+        for gene in range(0, len(pop[rank])-1):
+            pop[rank][gene] = np.random.uniform(dom_l, dom_u, 1)
 
+    return pop
 
-# limits
-def limits(x):
+def death_match(pop, fit_pop):
+    """this function determines which individuals of the population get replaced"""
 
-    if x>dom_u:
-        return dom_u
-    elif x<dom_l:
-        return dom_l
-    else:
-        return x
+    # make some lists to keep track of individuals
+    copy_pop = pop
+    copy_fit_pop = fit_pop
+    survivors_pop = []
+    survivors_fitness = []
+    death_match_pop = []
+    death_match_fitness = []
 
+    # we do 20 rounds of 5 randomly sampled individuals from the remaining pop
+    for _ in range(int(npop / 5)):
+        for _ in range(5):
 
-# crossover
-def crossover(pop, island):
-
-    total_offspring = np.zeros((0,n_vars))
-
-    for p in range(0,pop.shape[0], 2):
-        p1 = tournament(pop, island)
-        p2 = tournament(pop, island)
-
-        n_offspring =   np.random.randint(1,3+1, 1)[0]
-        offspring =  np.zeros( (n_offspring, n_vars) )
-
-        for f in range(0,n_offspring):
-
-            cross_prop = np.random.uniform(0,1)
-            offspring[f] = p1*cross_prop+p2*(1-cross_prop)
-
-            # mutation
-            for i in range(0,len(offspring[f])):
-                if np.random.uniform(0 ,1)<=mutation:
-                    offspring[f][i] =   offspring[f][i]+np.random.normal(0, 1)
-
-            offspring[f] = np.array(list(map(lambda y: limits(y), offspring[f])))
-
-            total_offspring = np.vstack((total_offspring, offspring[f]))
-
-    return total_offspring
-
-
-
-# kills the worst genomes, and replace with new best/random solutions
-def doomsday(pop,fit_pop):
-
-    worst = int(npop/4)  # a quarter of the population
-    order = np.argsort(fit_pop)
-    orderasc = order[0:worst]
-
-    for o in orderasc:
-        for j in range(0,n_vars):
-            pro = np.random.uniform(0,1)
-            if np.random.uniform(0,1)  <= pro:
-                pop[o][j] = np.random.uniform(dom_l, dom_u) # random dna, uniform dist.
+            # choose the competitors
+            if copy_pop.shape[0] > 1:
+                index = np.random.randint(0, copy_pop.shape[0]-1, 1)[0]
             else:
-                pop[o][j] = pop[order[-1:]][0][j] # dna from best
+                index = 0
 
-        fit_pop[o]=evaluate([pop[o]])
+            death_match_pop.append(copy_pop[index])
+            death_match_fitness.append(copy_fit_pop[index])
 
-    return pop,fit_pop
+            # delete the chosen ones from the population, so they can't be sampled again
+            copy_pop = np.delete(copy_pop, [index], 0)
+            copy_fit_pop = np.delete(copy_fit_pop, [index], 0)
+
+        # now do the death match and add the best to the survivors
+        survivor_index = np.argmax(death_match_fitness)
+        survivors_pop.append(death_match_pop[survivor_index])
+        survivors_fitness.append(death_match_fitness[survivor_index])
+
+    # we return the 20 survivors and their fitness values as np arrays
+    return np.array(survivors_pop), np.array(survivors_fitness)
+
+def parent_selection(pop, fit_pop, rounds):
+    """this function will select which 5 parents will mate"""
+
+    # get the list of worst to best of the population
+    worst_to_best = np.argsort(fit_pop)
+
+    # select the parents based on which round, first 2 parents are sampled from top 40%
+    p1 = pop[worst_to_best[pop.shape[0] - rounds - 1]]
+    p2 = pop[worst_to_best[pop.shape[0] - rounds - 2]]
+
+    # last 3 parents are randomly chosen
+    p3, p4, p5 = pop[np.random.randint(0, pop.shape[0]-1, 3)]
+
+    return np.array([p1, p2, p3, p4, p5])
+
+
+def recombination(parents):
+    """recombines 5 parents into 4 offspring"""
+
+    # pick 5 random numbers that add up to 1
+    random_values = np.random.dirichlet(np.ones(5),size=1)[0]
+
+    # those random values will serve as weights for the genes 2 offspring get (whole arithmetic recombination)
+    offspring1 = random_values[0] * parents[0] + random_values[1] * parents[1] + random_values[2] * parents[2] + random_values[3] * parents[3] + \
+        random_values[4] * parents[4]
+
+    # repeat for offspring 2
+    random_values = np.random.dirichlet(np.ones(5),size=1)[0]
+    offspring2 = random_values[0] * parents[0] + random_values[1] * parents[1] + random_values[2] * parents[2] + random_values[3] * parents[3] + \
+        random_values[4] * parents[4]
+
+    # the other 2 offspring will come from 4-point crossover
+    random_points = np.sort(np.random.randint(1, parents[0].shape[0]-2, 4))
+
+    # to make it so that it won't always be p1 who gives the first portion of DNA etc, we shuffle the parents
+    np.random.shuffle(parents)
+
+    # add the genes together
+    offspring3 = np.concatenate((parents[0][0:random_points[0]], parents[1][random_points[0]:random_points[1]], parents[2][random_points[1]:random_points[2]],\
+        parents[3][random_points[2]:random_points[3]], parents[4][random_points[3]:]))
+
+    # repeat for offspring 4
+    random_points = np.sort(np.random.randint(1, parents[0].shape[0]-2, 4))
+    np.random.shuffle(parents)
+    offspring4 = np.concatenate((parents[0][0:random_points[0]], parents[1][random_points[0]:random_points[1]], parents[2][random_points[1]:random_points[2]],\
+        parents[3][random_points[2]:random_points[3]], parents[4][random_points[3]:]))
+
+    # return the offspring
+    return np.concatenate(([offspring1], [offspring2], [offspring3], [offspring4]))
+
+def mutate(offspring):
+    """this function will mutate the offspring"""
+
+    # get the children and their genes
+    offspring = offspring
+    for child in offspring:
+
+        # don't mutate every child, make it 50% of the offspring
+        if np.random.uniform(0,0.4,1) < mutation:
+            for gene in range(0, len(child)-1):
+
+                # pick a random number between 0-1, mutate if < mutation rate
+                if np.random.uniform(0,1,1) < mutation:
+
+                    # change the gene by a small number from a very narrow normal distribution
+                    child[gene] += np.random.normal(0, 0.2, 1)
+
+                # make sure the genes don't get values outside of the limits
+                if child[gene] > dom_u:
+                    child[gene] = dom_u
+                if child[gene] < dom_l:
+                    child[gene] = dom_l
+
+    return offspring
 
 def select_random(pops, fit_pop):
     """
@@ -301,11 +353,15 @@ file_aux.close()
 
 
 # evolution
-last_sols_d = {}
-notimproved_d = {}
+new_best_counter_d = {}
+all_time_best_d = {}
+# last_sols_d = {}
+# notimproved_d = {}
+
 for i in range(n_islands):
-    last_sols_d[i] = fit_pop_d[i][best_d[i]]
-    notimproved_d[i] = 0
+    # last_sols_d[i] = fit_pop_d[i][best_d[i]]
+    new_best_counter_d[i] = 0
+    all_time_best_d[i] = 0
 
 for i in range(ini_g+1, gens):
 
@@ -315,48 +371,50 @@ for i in range(ini_g+1, gens):
 
     for j in range(n_islands):
 
-        offspring = crossover(pops[j], j)  # crossover
-        fit_offspring = evaluate(offspring)   # evaluation
-        pops[j] = np.vstack((pops[j],offspring))
-        fit_pop_d[j] = np.append(fit_pop_d[j],fit_offspring)
+        rounds = int(npop/5)
+        offspring = np.zeros((0, n_vars))
+        for k in range(1, rounds+1):
 
-        print(fit_pop_d[j].shape)
+            # choose parents
+            parents = parent_selection(pops[j], fit_pop_d[j], (k-1)*2)
 
-        best_d[j] = np.argmax(fit_pop_d[j]) #best solution in generation
-        fit_pop_d[j][best_d[j]] = float(evaluate(np.array([pops[j][best_d[j]] ]))[0]) # repeats best eval, for stability issues
-        best_sol = fit_pop_d[j][best_d[j]]
+            # honey, get the kids
+            offspring_group = recombination(parents)
 
-        # selection
-        fit_pop_cp = fit_pop_d[j]
-        fit_pop_norm =  np.array(list(map(lambda y: norm(y,fit_pop_cp), fit_pop_d[j]))) # avoiding negative probabilities, as fitness is ranges from negative numbers
-        probs = (fit_pop_norm)/(fit_pop_norm).sum()
-        chosen = np.random.choice(pops[j].shape[0], npop , p=probs, replace=False)
-        chosen = np.append(chosen[1:],best_d[j])
-        pops[j] = pops[j][chosen]
-        fit_pop_d[j] = fit_pop_d[j][chosen]
+            # add them to the offspring array
+            offspring = np.concatenate((offspring, offspring_group))
 
+        # mutate half the offspring for diversity
+        offspring = mutate(offspring)
 
-        # searching new areas
+        # we have the offspring, now we kill 80% of the population
+        pops[j] = death_match(pops[j], fit_pop_d[j])[0]
 
-        if best_sol <= last_sols_d[j]:
-            notimproved_d[j] += 1
-        else:
-            last_sols_d[j] = best_sol
-            notimproved_d[j] = 0
+        # mutate the surviving pop as well to increase search space
+        pops[j] = mutate(pops[j])
 
-        if notimproved_d[j] >= 15:
+        # combine the survivors with the offspring to form the new pop
+        pops[j] = np.concatenate((pops[j], offspring))
 
-            print("\ndoomsday")
-            # file_aux  = open(experiment_name+'/results.csv','a')
-            # file_aux.write('doomsday')
-            # file_aux.close()
+        # test the pop
+        fit_pop_d[j] = evaluate(pops[j])
 
-            pops[j], fit_pop_d[j] = doomsday(pops[j],fit_pop_d[j])
-            notimproved_d[j] = 0
-
+        # get stats
         best_d[j] = np.argmax(fit_pop_d[j])
         std_d[j]  =  np.std(fit_pop_d[j])
         mean_d[j] = np.mean(fit_pop_d[j])
+
+        # if 3 generations in a row don't give a new best solution, replace a fraction of the pop
+        if fit_pop_d[j][best_d[j]] > all_time_best_d[j]:
+            all_time_best_d[j] = fit_pop_d[j][best_d[j]]
+            new_best_counter_d[j] = 0
+            os.system(f"say 'New best is {round(all_time_best_d[j], 4)}' ")
+        else:
+            new_best_counter_d[j] += 1
+
+        if new_best_counter_d[j] > 3:
+            pops[j] = scramble_pop(pops[j], fit_pop_d[j], 0.3)
+            new_best_counter_d[j] = 0
 
         # saves results
         file_aux  = open(experiment_name+'/results.csv','a')
