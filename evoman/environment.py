@@ -113,10 +113,10 @@ class Environment(object):
             flags =  DOUBLEBUF  |  FULLSCREEN
         else:
             flags =  DOUBLEBUF
-        
+
         if self.fullscreen:
             flags =  DOUBLEBUF  |  FULLSCREEN
-            
+
         self.screen = pygame.display.set_mode((736, 512), flags)
 
         self.screen.set_alpha(None) # disables uneeded alpha
@@ -171,7 +171,10 @@ class Environment(object):
 
     def print_logs(self, msg):
         if self.logs == "on":
-            print('\n'+msg) # prints log messages to screen
+            erase_line = '\x1b[2K'
+            sys.stdout.write(erase_line)
+            print(msg, end='\r') # prints log messages to screen
+            # print('\n'+msg) # prints log messages to screen
 
             if self.savelogs == "yes": # prints log messages to file
                 file_aux  = open(self.experiment_name+'/evoman_logs.txt','a')
