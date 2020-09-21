@@ -241,7 +241,7 @@ def migrate(pops, fit_pop):
     return pops, fit_pop
 
 for g in range(10):
-    experiment_name = f'En1_select_best_{g}'
+    experiment_name = f'En3_select_best_{g}'
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
 
@@ -249,7 +249,7 @@ for g in range(10):
 
     # initializes simulation in individual evolution mode, for single static enemy.
     env = Environment(experiment_name=experiment_name,
-                      enemies=[1],
+                      enemies=[3],
                       playermode="ai",
                       player_controller=player_controller(n_hidden_neurons),
                       enemymode="static",
