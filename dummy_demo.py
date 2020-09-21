@@ -270,7 +270,7 @@ for i in range(ini_g+1, gens):
     pop = death_match(pop, fit_pop)[0]
 
     # mutate the surviving pop as well to increase search space
-    pop = mutate(pop)
+    pop = np.concatenate((pop[:int(len(pop)/2)], mutate(pop[int(len(pop)/2):])))
 
     # combine the survivors with the offspring to form the new pop
     pop = np.concatenate((pop, offspring))
