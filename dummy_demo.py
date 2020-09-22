@@ -16,44 +16,7 @@ import numpy as np
 from math import fabs,sqrt
 import glob, os
 
-experiment_name = 'dummy_demo'
-if not os.path.exists(experiment_name):
-    os.makedirs(experiment_name)
 
-n_hidden_neurons = 10
-
-# initializes simulation in individual evolution mode, for single static enemy.
-env = Environment(experiment_name=experiment_name,
-                  enemies=[2],
-                  playermode="ai",
-                  player_controller=player_controller(n_hidden_neurons),
-                  enemymode="static",
-                  level=2,
-                  speed="fastest")
-
-# default environment fitness is assumed for experiment
-
-env.state_to_log() # checks environment state
-
-
-####   Optimization for controller solution (best genotype-weights for phenotype-network): Ganetic Algorihm    ###
-
-ini = time.time()  # sets time marker
-
-
-# genetic algorithm params
-
-run_mode = 'train' # train or test
-
-# number of weights for multilayer with 10 hidden neurons
-n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
-
-dom_u = 1
-dom_l = -1
-npop = 100
-gens = 30
-mutation = 0.2
-last_best = 0
 
 # runs simulation
 def simulation(env,x):
@@ -86,7 +49,7 @@ def death_match(pop, fit_pop):
     survivors_fitness = []
     death_match_pop = []
     death_match_fitness = []
-    
+
     # we do 20 rounds of 5 randomly sampled individuals from the remaining pop
     for _ in range(int(npop / 5)):
         for _ in range(5):
@@ -96,14 +59,14 @@ def death_match(pop, fit_pop):
                 index = np.random.randint(0, copy_pop.shape[0]-1, 1)[0]
             else:
                 index = 0
-            
+
             death_match_pop.append(copy_pop[index])
             death_match_fitness.append(copy_fit_pop[index])
 
             # delete the chosen ones from the population, so they can't be sampled again
             copy_pop = np.delete(copy_pop, [index], 0)
             copy_fit_pop = np.delete(copy_fit_pop, [index], 0)
-        
+
         # now do the death match and add the best to the survivors
         survivor_index = np.argmax(death_match_fitness)
         survivors_pop.append(death_match_pop[survivor_index])
@@ -112,7 +75,7 @@ def death_match(pop, fit_pop):
     # we return the 20 survivors and their fitness values as np arrays
     return np.array(survivors_pop), np.array(survivors_fitness)
 
-    
+
 
 def parent_selection(pop, fit_pop, rounds):
     """this function will select which 5 parents will mate"""
@@ -132,18 +95,18 @@ def parent_selection(pop, fit_pop, rounds):
 
 def recombination(parents):
     """recombines 5 parents into 4 offspring"""
-    
+
     # pick 5 random numbers that add up to 1
     random_values = np.random.dirichlet(np.ones(5),size=1)[0]
 
     # those random values will serve as weights for the genes 2 offspring get (whole arithmetic recombination)
     offspring1 = random_values[0] * parents[0] + random_values[1] * parents[1] + random_values[2] * parents[2] + random_values[3] * parents[3] + \
-        random_values[4] * parents[4] 
+        random_values[4] * parents[4]
 
-    # repeat for offspring 2 
+    # repeat for offspring 2
     random_values = np.random.dirichlet(np.ones(5),size=1)[0]
     offspring2 = random_values[0] * parents[0] + random_values[1] * parents[1] + random_values[2] * parents[2] + random_values[3] * parents[3] + \
-        random_values[4] * parents[4] 
+        random_values[4] * parents[4]
 
     # the other 2 offspring will come from 4-point crossover
     random_points = np.sort(np.random.randint(1, parents[0].shape[0]-2, 4))
@@ -154,7 +117,7 @@ def recombination(parents):
     # add the genes together
     offspring3 = np.concatenate((parents[0][0:random_points[0]], parents[1][random_points[0]:random_points[1]], parents[2][random_points[1]:random_points[2]],\
         parents[3][random_points[2]:random_points[3]], parents[4][random_points[3]:]))
-    
+
     # repeat for offspring 4
     random_points = np.sort(np.random.randint(1, parents[0].shape[0]-2, 4))
     np.random.shuffle(parents)
@@ -186,135 +149,192 @@ def mutate(offspring):
                     child[gene] = dom_u
                 if child[gene] < dom_l:
                     child[gene] = dom_l
-    
+
     return offspring
-    
+
 
 # loads file with the best solution for testing
-if run_mode =='test':
 
-    bsol = np.loadtxt(experiment_name+'/best.txt')
-    print( '\n RUNNING SAVED BEST SOLUTION \n')
-    env.update_parameter('speed','normal')
-    evaluate([bsol])
+for g in range(10):
+    experiment_name = f'En1_no_isl_{g}'
+    if not os.path.exists(experiment_name):
+        os.makedirs(experiment_name)
 
-    sys.exit(0)
+    n_hidden_neurons = 10
 
+    # initializes simulation in individual evolution mode, for single static enemy.
+    env = Environment(experiment_name=experiment_name,
+                      enemies=[1],
+                      playermode="ai",
+                      player_controller=player_controller(n_hidden_neurons),
+                      enemymode="static",
+                      level=2,
+                      speed="fastest")
 
-# initializes population loading old solutions or generating new ones
+    # default environment fitness is assumed for experiment
 
-if not os.path.exists(experiment_name+'/evoman_solstate'):
-
-    print( '\nNEW EVOLUTION\n')
-
-    pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
-    fit_pop = evaluate(pop)
-    best = np.argmax(fit_pop)
-    mean = np.mean(fit_pop)
-    std = np.std(fit_pop)
-    ini_g = 0
-    solutions = [pop, fit_pop]
-    env.update_solutions(solutions)
-
-else:
-
-    print( '\nCONTINUING EVOLUTION\n')
-
-    env.load_state()
-    pop = env.solutions[0]
-    fit_pop = env.solutions[1]
-
-    best = np.argmax(fit_pop)
-    mean = np.mean(fit_pop)
-    std = np.std(fit_pop)
-
-    # finds last generation number
-    file_aux  = open(experiment_name+'/gen.txt','r')
-    ini_g = int(file_aux.readline())
-    file_aux.close()
+    env.state_to_log() # checks environment state
 
 
-# saves results for first pop
-file_aux  = open(experiment_name+'/results.txt','a')
-file_aux.write('\n\ngen best mean std')
-print( '\n GENERATION '+str(ini_g)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6)))
-file_aux.write('\n'+str(ini_g)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6))   )
-file_aux.close()
+    ####   Optimization for controller solution (best genotype-weights for phenotype-network): Ganetic Algorihm    ###
+
+    ini = time.time()  # sets time marker
 
 
-new_best_counter = 0
-all_time_best = 0
+    # genetic algorithm params
 
-for i in range(ini_g+1, gens):
+    run_mode = 'test' # train or test
 
-    # HIER DE CODE VOOR DE EVO ALGOOOOO
+    # number of weights for multilayer with 10 hidden neurons
+    n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
-    # recombination
-    rounds = int(npop / 5)
-    offspring = np.zeros((0, n_vars))
-    for r in range(1, rounds+1):
+    dom_u = 1
+    dom_l = -1
+    npop = 40
+    gens = 20
+    mutation = 0.2
+    last_best = 0
 
-        # choose parents
-        parents = parent_selection(pop, fit_pop, (r-1)*2)
+    # initializes population loading old solutions or generating new ones
 
-        # honey, get the kids
-        offspring_group = recombination(parents)
+    if run_mode =='test':
 
-        # add them to the offspring array
-        offspring = np.concatenate((offspring, offspring_group))
+        bsol = np.loadtxt(experiment_name+'/best.txt')
+        print( '\n RUNNING SAVED BEST SOLUTION \n')
+        env.update_parameter('speed','normal')
+        file_aux = open(experiment_name+'/gain.csv', 'a')
+        file_aux.write("Fitness Phealth Ehealth Time")
+        for i in range(5):
+            results = np.array(list(map(lambda y: env.play(y), [bsol])))
+            file_aux.write('\n'+str(results[0][0])+' '+str(results[0][1])+' '+str(results[0][2])+' '+str(results[0][3]))
+        file_aux.close()
 
-    # mutate half the offspring for diversity
-    offspring = mutate(offspring)
+    if not os.path.exists(experiment_name+'/evoman_solstate'):
 
-    # we have the offspring, now we kill 80% of the population
-    pop = death_match(pop, fit_pop)[0]
+        print( '\nNEW EVOLUTION\n')
 
-    # mutate the surviving pop as well to increase search space
-    pop = np.concatenate((pop[:int(len(pop)/2)], mutate(pop[int(len(pop)/2):])))
+        pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
+        fit_pop = evaluate(pop)
+        best = np.argmax(fit_pop)
+        mean = np.mean(fit_pop)
+        std = np.std(fit_pop)
+        ini_g = 0
+        solutions = [pop, fit_pop]
+        env.update_solutions(solutions)
 
-    # combine the survivors with the offspring to form the new pop
-    pop = np.concatenate((pop, offspring))
-
-    # test the pop
-    fit_pop = evaluate(pop)
-
-    # get stats
-    best = np.argmax(fit_pop)
-    std  =  np.std(fit_pop)
-    mean = np.mean(fit_pop)
-
-    # if 3 generations in a row don't give a new best solution, replace a fraction of the pop
-    if fit_pop[best] > all_time_best:
-        all_time_best = fit_pop[best]
-        new_best_counter = 0
-        os.system(f"say 'New best is {round(all_time_best, 4)}' ")
     else:
-        new_best_counter += 1
 
-    if new_best_counter > 3:
-        pop = scramble_pop(pop, fit_pop, 0.3)
-        new_best_counter = 0
+        print( '\nCONTINUING EVOLUTION\n')
 
-    ### FROM OPTIMIZE FILE ###
+        env.load_state()
+        pop = env.solutions[0]
+        fit_pop = env.solutions[1]
 
-    # saves results
+        best = np.argmax(fit_pop)
+        mean = np.mean(fit_pop)
+        std = np.std(fit_pop)
+
+        # finds last generation number
+        file_aux  = open(experiment_name+'/gen.txt','r')
+        ini_g = int(file_aux.readline())
+        file_aux.close()
+
+
+    # saves results for first pop
     file_aux  = open(experiment_name+'/results.txt','a')
-    print( '\n GENERATION '+str(i)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6)))
-    file_aux.write('\n'+str(i)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6))   )
+    file_aux.write('\n\ngen best mean std')
+    print( '\n GENERATION '+str(ini_g)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6)))
+    file_aux.write('\n'+str(ini_g)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6))   )
     file_aux.close()
 
-    # saves generation number
-    file_aux  = open(experiment_name+'/gen.txt','w')
-    file_aux.write(str(i))
-    file_aux.close()
 
-    # saves file with the best solution
-    np.savetxt(experiment_name+'/best.txt',pop[best])
+    new_best_counter = 0
+    all_time_best = 0
 
-    # saves simulation state
-    solutions = [pop, fit_pop]
-    env.update_solutions(solutions)
-    env.save_state()
+    for i in range(ini_g+1, gens):
+
+        # HIER DE CODE VOOR DE EVO ALGOOOOO
+
+        # recombination
+        rounds = int(npop / 5)
+        offspring = np.zeros((0, n_vars))
+        for r in range(1, rounds+1):
+
+            # choose parents
+            parents = parent_selection(pop, fit_pop, (r-1)*2)
+
+            # honey, get the kids
+            offspring_group = recombination(parents)
+
+            # add them to the offspring array
+            offspring = np.concatenate((offspring, offspring_group))
+
+        # mutate half the offspring for diversity
+        offspring = mutate(offspring)
+
+        # we have the offspring, now we kill 80% of the population
+        pop = death_match(pop, fit_pop)[0]
+
+        # mutate the surviving pop as well to increase search space
+        pop = mutate(pop)
+
+        # combine the survivors with the offspring to form the new pop
+        pop = np.concatenate((pop, offspring))
+
+        # mutate the surviving pop as well to increase search space
+        pop = np.concatenate((pop[:int(len(pop)/2)], mutate(pop[int(len(pop)/2):])))
+        # test the pop
+        fit_pop = evaluate(pop)
+
+        # get stats
+        best = np.argmax(fit_pop)
+        std  =  np.std(fit_pop)
+        mean = np.mean(fit_pop)
+
+        # if 3 generations in a row don't give a new best solution, replace a fraction of the pop
+        if fit_pop[best] > all_time_best:
+            all_time_best = fit_pop[best]
+            new_best_counter = 0
+            os.system(f"say 'New best is {round(all_time_best, 4)}' ")
+        else:
+            new_best_counter += 1
+
+        if new_best_counter > 3:
+            pop = scramble_pop(pop, fit_pop, 0.3)
+            new_best_counter = 0
+
+        diversity_d = {}
+        for k in range(npop):
+            if fit_pop[k] in diversity_d.keys():
+                diversity_d[fit_pop[k]] += 1
+            else:
+                diversity_d[fit_pop[k]] = 1
+        file_aux = open(experiment_name+'/diversity.csv', 'a')
+        file_aux.write('\n'+str(i)+' '+str(len(diversity_d.keys())))
+        file_aux.close()
+
+        ### FROM OPTIMIZE FILE ###
+
+        # saves results
+        file_aux  = open(experiment_name+'/results.csv','a')
+        print( '\n GENERATION '+str(i)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6)))
+        file_aux.write('\n'+str(i)+' '+str(round(fit_pop[best],6))+' '+str(round(mean,6))+' '+str(round(std,6))   )
+        file_aux.close()
+
+        # saves generation number
+        file_aux  = open(experiment_name+'/gen.txt','w')
+        file_aux.write(str(i))
+        file_aux.close()
+
+        # saves file with the best solution
+        np.savetxt(experiment_name+'/best.txt',pop[best])
+
+        # saves simulation state
+        solutions = [pop, fit_pop]
+        env.update_solutions(solutions)
+        env.save_state()
+
+
 
 
 
