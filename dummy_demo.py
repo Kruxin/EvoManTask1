@@ -156,7 +156,7 @@ def mutate(offspring):
 # loads file with the best solution for testing
 
 for g in range(10):
-    experiment_name = f'En3_no_isl_{g}'
+    experiment_name = f'En1_no_isl_{g}'
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
 
@@ -164,7 +164,7 @@ for g in range(10):
 
     # initializes simulation in individual evolution mode, for single static enemy.
     env = Environment(experiment_name=experiment_name,
-                      enemies=[3],
+                      enemies=[1],
                       playermode="ai",
                       player_controller=player_controller(n_hidden_neurons),
                       enemymode="static",
@@ -183,7 +183,7 @@ for g in range(10):
 
     # genetic algorithm params
 
-    run_mode = 'train' # train or test
+    run_mode = 'test' # train or test
 
     # number of weights for multilayer with 10 hidden neurons
     n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
@@ -202,9 +202,12 @@ for g in range(10):
         bsol = np.loadtxt(experiment_name+'/best.txt')
         print( '\n RUNNING SAVED BEST SOLUTION \n')
         env.update_parameter('speed','normal')
-        evaluate([bsol])
-
-        sys.exit(0)
+        file_aux = open(experiment_name+'/gain.csv', 'a')
+        file_aux.write("Fitness Phealth Ehealth Time")
+        for i in range(5):
+            results = np.array(list(map(lambda y: env.play(y), [bsol])))
+            file_aux.write('\n'+str(results[0][0])+' '+str(results[0][1])+' '+str(results[0][2])+' '+str(results[0][3]))
+        file_aux.close()
 
     if not os.path.exists(experiment_name+'/evoman_solstate'):
 
