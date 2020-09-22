@@ -7,7 +7,7 @@ import math
 
 n_islands = 5
 gen = 20
-enemy = 1
+enemy = 3
 
 pops_m_best = {}
 pops_b_best = {}
@@ -165,29 +165,29 @@ ax3 = fig.add_subplot(1,3,3)
 ax1.errorbar(x, mean_b_best, std_b_best, label="Best migration", marker="o", capsize=5)
 ax1.errorbar(x, mean_b_random, std_b_random, label="Random migration", marker="o", capsize=5)
 ax1.errorbar(x1, mean_b_no, std_b_no, label="No migration", marker="o", capsize=5)
-ax1.set_xlabel("Generation")
+# ax1.set_xlabel("Generation")
 ax1.set_ylabel("Fitness")
-ax1.set_xticks(np.arange(0,20,1))
-ax1.legend(loc="best")
+ax1.set_xticks(np.arange(0,21,5))
+# ax1.legend(loc="best")
 ax1.set_title(f"Average best fitness for enemy {enemy}")
 
 ax2.errorbar(x, mean_m_best, std_s_best, label="Best migration", marker="o", capsize=5)
 ax2.errorbar(x, mean_m_random, std_s_random, label="Random migration", marker="o", capsize=5)
 ax2.errorbar(x1, mean_m_no, std_s_no, label="No migration", marker="o", capsize=5)
 ax2.set_xlabel("Generation")
-ax2.set_ylabel("Fitness")
-ax2.set_xticks(np.arange(0,20,1))
+# ax2.set_ylabel("Fitness")
+ax2.set_xticks(np.arange(0,21,5))
 ax2.legend(loc="best")
 ax2.set_title(f"Average fitness for enemy {enemy}")
 
-ax3.plot(x, abs_best_best, label="Best migration")
-ax3.plot(x, abs_best_random, label="Random migration")
-ax3.plot(x1, abs_best_no, label="No migration")
-ax3.set_xlabel("Generation")
-ax3.set_ylabel("Fitness")
-ax3.set_xticks(np.arange(0,20,1))
-ax3.legend(loc="best")
-ax3.set_title(f"Best fitness for enemy {enemy}")
+ax3.plot(x, abs_best_best, "o-", markersize=2, label="Best migration")
+ax3.plot(x, abs_best_random, "o-", markersize=2, label="Random migration")
+ax3.plot(x1, abs_best_no, "o-",  markersize=2, label="No migration")
+# ax3.set_xlabel("Generation")
+# ax3.set_ylabel("Fitness")
+ax3.set_xticks(np.arange(0,21,5))
+# ax3.legend(loc="best")
+ax3.set_title(f"Overall best fitness for enemy {enemy}")
 # for i in range(n_islands):
 #     ax1.plot(x, pops_m[i])
 #     ax2.plot(x, pops_b[i])
