@@ -38,8 +38,7 @@ def plotdiversityislands(enemy, method):
     y_data = []
     y_error = []
     x_data = np.linspace(1,20,19)
-    #print(len(data_mean['run0']))
-    #print(data_mean)
+
     print(data_std)
     for i in range(0, 19):
         y = np.mean([data_mean['run0'][i], data_mean['run1'][i], data_mean['run2'][i], data_mean['run3'][i], \
@@ -53,19 +52,17 @@ def plotdiversityislands(enemy, method):
     #fig, ax = plt.subplots()
 
 
-    ax.errorbar(x_data, y_data,
-                yerr=y_error,
-                capsize=5,
-                fmt='-o')
+    # ax.errorbar(x_data, y_data,
+    #             yerr=y_error,
+    #             capsize=5,
+    #             fmt='-o')
 
 
-    ax.set_xlabel('Generation')
-    ax.set_ylim(0, 30)
-    ax.set_ylabel('Diversity')
-    #ax.set_title('Enemy 1')
+    # ax.set_xlabel('Generation')
+    # ax.set_ylim(0, 30)
+    # ax.set_ylabel('Diversity')
 
-
-    # plt.show()
+    return y_data, y_error, x_data
 
 
 def plotdiversity_no_islands(enemy):
@@ -98,13 +95,10 @@ def plotdiversity_no_islands(enemy):
             data_std[f'run{i}'] = std_all_gens
 
     # now we get the actual lists to plot the data by taking the averages of the averages and std's
-
     y_data = []
     y_error = []
     x_data = np.linspace(1,20,19)
-    #print(len(data_mean['run0']))
-    #print(data_mean)
-    print(data_std)
+
     for i in range(0, 19):
         y = np.mean([data_mean['run0'][i], data_mean['run1'][i], data_mean['run2'][i], data_mean['run3'][i], \
             data_mean['run4'][i], data_mean['run5'][i], data_mean['run6'][i], data_mean['run7'][i], data_mean['run8'][i], data_mean['run9'][i] ])
@@ -117,23 +111,62 @@ def plotdiversity_no_islands(enemy):
     #fig, ax = plt.subplots()
 
 
-    ax.errorbar(x_data, y_data,
-                yerr=y_error,
-                capsize=5,
-                fmt='-o')
+    # ax.errorbar(x_data, y_data,
+    #             yerr=y_error,
+    #             capsize=5,
+    #             fmt='-o')
 
 
-    ax.set_xlabel('Generation')
-    ax.set_ylim(0, 30)
-    ax.set_ylabel('Diversity')
+    # ax.set_xlabel('Generation')
+    # ax.set_ylim(0, 30)
+    # ax.set_ylabel('Diversity')
     #ax.set_title('Enemy 1')
 
 
-    # plt.show()
+    return y_data, y_error, x_data
 
+# make the plots here, just manually add the title and the enemy etc
 
-fig, ax = plt.subplots()
-#plotdiversityislands(3, 'random')
-plotdiversityislands(3, 'best')
-plotdiversity_no_islands(3)
+enemy1_random = plotdiversityislands(1, 'random')
+enemy1_best = plotdiversityislands(1, 'best')
+enemy1_noisl = plotdiversity_no_islands(1)
+
+enemy2_random = plotdiversityislands(2, 'random')
+enemy2_best = plotdiversityislands(2, 'best')
+enemy2_noisl = plotdiversity_no_islands(2)
+
+enemy3_random = plotdiversityislands(3, 'random')
+enemy3_best = plotdiversityislands(3, 'best')
+enemy3_noisl = plotdiversity_no_islands(3)
+
+fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, sharey=True)
+ax0.errorbar(enemy1_best[2], enemy1_best[0], enemy1_best[1], capsize=5, fmt='-o')
+ax0.errorbar(enemy1_random[2], enemy1_random[0], enemy1_random[1], capsize=5, fmt='-o')
+ax0.errorbar(enemy1_noisl[2], enemy1_noisl[0], enemy1_noisl[1], capsize=5, fmt='-o')
+ax0.set_xticks(np.arange(0,20,5))
+ax1.errorbar(enemy2_best[2], enemy2_best[0], enemy2_best[1], capsize=5, fmt='-o')
+ax1.errorbar(enemy2_random[2], enemy2_random[0], enemy2_random[1], capsize=5, fmt='-o')
+ax1.errorbar(enemy2_noisl[2], enemy2_noisl[0], enemy2_noisl[1], capsize=5, fmt='-o')
+ax1.set_xticks(np.arange(0,20,5))
+ax2.errorbar(enemy3_best[2], enemy3_best[0], enemy3_best[1], capsize=5, fmt='-o')
+ax2.errorbar(enemy3_random[2], enemy3_random[0], enemy3_random[1], capsize=5, fmt='-o')
+ax2.errorbar(enemy3_noisl[2], enemy3_noisl[0], enemy3_noisl[1], capsize=5, fmt='-o')
+ax2.set_xticks(np.arange(0,20,5))
+# plotdiversityislands(1, 'random')
+# plotdiversityislands(1, 'best')
+# plotdiversity_no_islands(1)
+# plt.title('Enemy 1')
+
+# fig.add_subplot(1,3,2)
+# plotdiversityislands(2, 'random')
+# plotdiversityislands(2, 'best')
+# plotdiversity_no_islands(2)
+# plt.title('Enemy 2')
+
+# fig.add_subplot(1,3,3)
+# plotdiversityislands(3, 'random')
+# plotdiversityislands(3, 'best')
+# plotdiversity_no_islands(3)
+# plt.title('Enemy 3')
+
 plt.show()
