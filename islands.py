@@ -227,7 +227,7 @@ def migrate(pops, fit_pop):
     Selects the best n individuals from each island and replaces them for the best n from the next
     island in a circular pattern. Returns the updated dictionary for fitness and population.
     """
-    best_index_d, best_fit_inds_d, best_pop_inds_d = select_random(pops, fit_pop)
+    best_index_d, best_fit_inds_d, best_pop_inds_d = select_best(pops, fit_pop)
     pops_mid, fit_pop_mid = remove_best(best_index_d, pops, fit_pop)
     for i in range(n_islands):
         for j in range(n_migrate):
@@ -240,8 +240,8 @@ def migrate(pops, fit_pop):
 
     return pops, fit_pop
 
-for g in range(6,10):
-    experiment_name = f'En3_select_random_{g}'
+for g in range(10):
+    experiment_name = f'En2_select_random_{g}'
     if not os.path.exists(experiment_name):
         os.makedirs(experiment_name)
 
@@ -249,7 +249,7 @@ for g in range(6,10):
 
     # initializes simulation in individual evolution mode, for single static enemy.
     env = Environment(experiment_name=experiment_name,
-                      enemies=[3],
+                      enemies=[2],
                       playermode="ai",
                       player_controller=player_controller(n_hidden_neurons),
                       enemymode="static",
