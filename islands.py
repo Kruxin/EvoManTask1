@@ -268,7 +268,7 @@ for g in range(10):
 
     # genetic algorithm params
 
-    run_mode = 'train' # train or test
+    run_mode = 'test' # train or test
 
     # number of weights for multilayer with 10 hidden neurons
     n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
@@ -291,185 +291,188 @@ for g in range(10):
         bsol = np.loadtxt(experiment_name+'/best.txt')
         print( '\n RUNNING SAVED BEST SOLUTION \n')
         env.update_parameter('speed','normal')
-        evaluate([bsol])
-
-        sys.exit(0)
-
-
-    # initializes population loading old solutions or generating new ones
-
-    if not os.path.exists(experiment_name+'/evoman_solstate'):
-
-        print( '\nNEW EVOLUTION\n')
-        pops = {}
-        fit_pop_d = {}
-        best_d = {}
-        mean_d = {}
-        std_d = {}
-        ini_g = 0
-        solutions_d = {}
-        for i in range(n_islands):
-            pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
-            pops[i] = pop
-            fit_pop_d[i] = evaluate(pop)
-            best_d[i] = np.argmax(fit_pop_d[i])
-            mean_d[i] = np.mean(fit_pop_d[i])
-            std_d[i] = np.std(fit_pop_d[i])
-            solutions_d[i] = ([pop, fit_pop_d[i]])
-        env.update_solutions(solutions_d)
-        file_aux = open(experiment_name+'/diversity.csv', 'a')
-        file_aux.write("Generation Island NDifferentFitnesses")
+        file_aux = open(experiment_name+'/gain.csv', 'a')
+        file_aux.write("Fitness Phealth Ehealth Time")
+        for i in range(5):
+            results = np.array(list(map(lambda y: env.play(y), [bsol])))
+            file_aux.write('\n'+str(results[0][0])+' '+str(results[0][1])+' '+str(results[0][2])+' '+str(results[0][3]))
         file_aux.close()
 
     else:
+        # initializes population loading old solutions or generating new ones
 
-        print( '\nCONTINUING EVOLUTION\n')
+        if not os.path.exists(experiment_name+'/evoman_solstate'):
 
-        env.load_state()
+            print( '\nNEW EVOLUTION\n')
+            pops = {}
+            fit_pop_d = {}
+            best_d = {}
+            mean_d = {}
+            std_d = {}
+            ini_g = 0
+            solutions_d = {}
+            for i in range(n_islands):
+                pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
+                pops[i] = pop
+                fit_pop_d[i] = evaluate(pop)
+                best_d[i] = np.argmax(fit_pop_d[i])
+                mean_d[i] = np.mean(fit_pop_d[i])
+                std_d[i] = np.std(fit_pop_d[i])
+                solutions_d[i] = ([pop, fit_pop_d[i]])
+            env.update_solutions(solutions_d)
+            file_aux = open(experiment_name+'/diversity.csv', 'a')
+            file_aux.write("Generation Island NDifferentFitnesses")
+            file_aux.close()
 
-        pops = env.solutions[0]
-        fit_pop_d = env.solutions[1]
-        best_d = {}
-        mean_d = {}
-        std_d = {}
+        else:
+
+            print( '\nCONTINUING EVOLUTION\n')
+
+            env.load_state()
+
+            pops = env.solutions[0]
+            fit_pop_d = env.solutions[1]
+            best_d = {}
+            mean_d = {}
+            std_d = {}
+
+            for i in range(n_islands):
+                best_d[i] = np.argmax(fit_pop_d[i])
+                mean_d[i] = np.mean(fit_pop_d[i])
+                std_d[i] = np.std(fit_pop_d[i])
+
+            # finds last generation number
+            file_aux  = open(experiment_name+'/gen.txt','r')
+            ini_g = int(file_aux.readline())
+            file_aux.close()
+
+
+        # saves results for first pop
+        file_aux  = open(experiment_name+'/results.csv','a')
+        if ini_g == 0:
+            file_aux.write('gen island best mean std')
+        for i in range(n_islands):
+            print( '\n GENERATION '+str(ini_g)+' '+str(i)+' '+str(round(fit_pop_d[i][best_d[i]], 6))+' '+str(round(mean_d[i],6))+' '+str(round(std_d[i],6)))
+            file_aux.write('\n'+str(ini_g)+' '+str(i)+' '+str(round(fit_pop_d[i][best_d[i]],6))+' '+str(round(mean_d[i],6))+' '+str(round(std_d[i],6))   )
+        file_aux.close()
+
+
+        # evolution
+        new_best_counter_d = {}
+        all_time_best_d = {}
+        # last_sols_d = {}
+        # notimproved_d = {}
 
         for i in range(n_islands):
-            best_d[i] = np.argmax(fit_pop_d[i])
-            mean_d[i] = np.mean(fit_pop_d[i])
-            std_d[i] = np.std(fit_pop_d[i])
+            # last_sols_d[i] = fit_pop_d[i][best_d[i]]
+            new_best_counter_d[i] = 0
+            all_time_best_d[i] = 0
 
-        # finds last generation number
-        file_aux  = open(experiment_name+'/gen.txt','r')
-        ini_g = int(file_aux.readline())
-        file_aux.close()
+        for i in range(ini_g+1, gens):
 
-
-    # saves results for first pop
-    file_aux  = open(experiment_name+'/results.csv','a')
-    if ini_g == 0:
-        file_aux.write('gen island best mean std')
-    for i in range(n_islands):
-        print( '\n GENERATION '+str(ini_g)+' '+str(i)+' '+str(round(fit_pop_d[i][best_d[i]], 6))+' '+str(round(mean_d[i],6))+' '+str(round(std_d[i],6)))
-        file_aux.write('\n'+str(ini_g)+' '+str(i)+' '+str(round(fit_pop_d[i][best_d[i]],6))+' '+str(round(mean_d[i],6))+' '+str(round(std_d[i],6))   )
-    file_aux.close()
+            if i % exch_rate == 0:
+                pops, fit_pop_d = migrate(pops, fit_pop_d)
+                print("\nMigration successfull\n")
 
 
-    # evolution
-    new_best_counter_d = {}
-    all_time_best_d = {}
-    # last_sols_d = {}
-    # notimproved_d = {}
+            for j in range(n_islands):
+                rounds = int(npop/5)
+                offspring = np.zeros((0, n_vars))
+                for k in range(1, rounds+1):
 
-    for i in range(n_islands):
-        # last_sols_d[i] = fit_pop_d[i][best_d[i]]
-        new_best_counter_d[i] = 0
-        all_time_best_d[i] = 0
+                    # choose parents
+                    parents = parent_selection(pops[j], fit_pop_d[j], (k-1)*2)
 
-    for i in range(ini_g+1, gens):
+                    # honey, get the kids
+                    offspring_group = recombination(parents)
 
-        if i % exch_rate == 0:
-            pops, fit_pop_d = migrate(pops, fit_pop_d)
-            print("\nMigration successfull\n")
+                    # add them to the offspring array
+                    offspring = np.concatenate((offspring, offspring_group))
 
+                # mutate half the offspring for diversity
+                offspring = mutate(offspring)
 
-        for j in range(n_islands):
-            rounds = int(npop/5)
-            offspring = np.zeros((0, n_vars))
-            for k in range(1, rounds+1):
+                # we have the offspring, now we kill 80% of the population
+                pops[j] = death_match(pops[j], fit_pop_d[j])[0]
 
-                # choose parents
-                parents = parent_selection(pops[j], fit_pop_d[j], (k-1)*2)
+                # mutate the surviving pop as well to increase search space
+                pops[j] = mutate(pops[j])
 
-                # honey, get the kids
-                offspring_group = recombination(parents)
+                # combine the survivors with the offspring to form the new pop
+                pops[j] = np.concatenate((pops[j], offspring))
 
-                # add them to the offspring array
-                offspring = np.concatenate((offspring, offspring_group))
+                # test the pop
+                fit_pop_d[j] = evaluate(pops[j])
 
-            # mutate half the offspring for diversity
-            offspring = mutate(offspring)
+                # get stats
+                best_d[j] = np.argmax(fit_pop_d[j])
+                std_d[j]  =  np.std(fit_pop_d[j])
+                mean_d[j] = np.mean(fit_pop_d[j])
 
-            # we have the offspring, now we kill 80% of the population
-            pops[j] = death_match(pops[j], fit_pop_d[j])[0]
-
-            # mutate the surviving pop as well to increase search space
-            pops[j] = mutate(pops[j])
-
-            # combine the survivors with the offspring to form the new pop
-            pops[j] = np.concatenate((pops[j], offspring))
-
-            # test the pop
-            fit_pop_d[j] = evaluate(pops[j])
-
-            # get stats
-            best_d[j] = np.argmax(fit_pop_d[j])
-            std_d[j]  =  np.std(fit_pop_d[j])
-            mean_d[j] = np.mean(fit_pop_d[j])
-
-            # if 3 generations in a row don't give a new best solution, replace a fraction of the pop
-            if fit_pop_d[j][best_d[j]] > all_time_best_d[j]:
-                all_time_best_d[j] = fit_pop_d[j][best_d[j]]
-                new_best_counter_d[j] = 0
-                os.system(f"say 'New best is {round(all_time_best_d[j], 4)}' ")
-            else:
-                new_best_counter_d[j] += 1
-
-            if new_best_counter_d[j] > 3:
-                pops[j] = scramble_pop(pops[j], fit_pop_d[j], 0.3)
-                new_best_counter_d[j] = 0
-
-            # saves results
-            file_aux  = open(experiment_name+'/results.csv','a')
-            print( '\n GENERATION '+str(i)+' '+str(j)+' '+str(round(fit_pop_d[j][best_d[j]], 6))+' '+str(round(mean_d[j],6))+' '+str(round(std_d[j],6)))
-            file_aux.write('\n'+str(i)+' '+str(j)+' '+str(round(fit_pop_d[j][best_d[j]],6))+' '+str(round(mean_d[j],6))+' '+str(round(std_d[j],6))   )
-            file_aux.close()
-
-            np.savetxt(experiment_name+'/best'+str(j)+'.txt', pops[j][best_d[j]])
-
-            # Counts number of different fitnesses
-            diversity_d = {}
-            for k in range(npop):
-                if fit_pop_d[j][k] in diversity_d.keys():
-                    diversity_d[fit_pop_d[j][k]] += 1
+                # if 3 generations in a row don't give a new best solution, replace a fraction of the pop
+                if fit_pop_d[j][best_d[j]] > all_time_best_d[j]:
+                    all_time_best_d[j] = fit_pop_d[j][best_d[j]]
+                    new_best_counter_d[j] = 0
+                    os.system(f"say 'New best is {round(all_time_best_d[j], 4)}' ")
                 else:
-                    diversity_d[fit_pop_d[j][k]] = 1
-            file_aux = open(experiment_name+'/diversity.csv', 'a')
-            file_aux.write('\n'+str(i)+' '+str(j)+' '+str(len(diversity_d.keys())))
+                    new_best_counter_d[j] += 1
+
+                if new_best_counter_d[j] > 3:
+                    pops[j] = scramble_pop(pops[j], fit_pop_d[j], 0.3)
+                    new_best_counter_d[j] = 0
+
+                # saves results
+                file_aux  = open(experiment_name+'/results.csv','a')
+                print( '\n GENERATION '+str(i)+' '+str(j)+' '+str(round(fit_pop_d[j][best_d[j]], 6))+' '+str(round(mean_d[j],6))+' '+str(round(std_d[j],6)))
+                file_aux.write('\n'+str(i)+' '+str(j)+' '+str(round(fit_pop_d[j][best_d[j]],6))+' '+str(round(mean_d[j],6))+' '+str(round(std_d[j],6))   )
+                file_aux.close()
+
+                np.savetxt(experiment_name+'/best'+str(j)+'.txt', pops[j][best_d[j]])
+
+                # Counts number of different fitnesses
+                diversity_d = {}
+                for k in range(npop):
+                    if fit_pop_d[j][k] in diversity_d.keys():
+                        diversity_d[fit_pop_d[j][k]] += 1
+                    else:
+                        diversity_d[fit_pop_d[j][k]] = 1
+                file_aux = open(experiment_name+'/diversity.csv', 'a')
+                file_aux.write('\n'+str(i)+' '+str(j)+' '+str(len(diversity_d.keys())))
+                file_aux.close()
+
+            # Finds overall best individual
+            best_fit = 0.0
+            best_index = 0
+            best_island = 0
+            for j in range(n_islands):
+                max_val = float(max(fit_pop_d[j]))
+                if max_val > best_fit:
+                    best_fit = max_val
+                    best_index = np.argmax(fit_pop_d[j])
+                    best_island = j
+
+            # saves file with the best solution
+            np.savetxt(experiment_name+'/best.txt',pops[best_island][best_index])
+
+            # saves simulation state
+            solutions = [pops, fit_pop_d]
+            env.update_solutions(solutions)
+            env.save_state()
+
+            # saves generation number
+            file_aux  = open(experiment_name+'/gen.txt','w')
+            file_aux.write(str(i))
             file_aux.close()
 
-        # Finds overall best individual
-        best_fit = 0.0
-        best_index = 0
-        best_island = 0
-        for j in range(n_islands):
-            max_val = float(max(fit_pop_d[j]))
-            if max_val > best_fit:
-                best_fit = max_val
-                best_index = np.argmax(fit_pop_d[j])
-                best_island = j
-
-        # saves file with the best solution
-        np.savetxt(experiment_name+'/best.txt',pops[best_island][best_index])
-
-        # saves simulation state
-        solutions = [pops, fit_pop_d]
-        env.update_solutions(solutions)
-        env.save_state()
-
-        # saves generation number
-        file_aux  = open(experiment_name+'/gen.txt','w')
-        file_aux.write(str(i))
-        file_aux.close()
 
 
 
-
-    fim = time.time() # prints total execution time for experiment
-    print( '\nExecution time: '+str(round((fim-ini)/60))+' minutes \n')
-
-
-    file = open(experiment_name+'/neuroended', 'w')  # saves control (simulation has ended) file for bash loop file
-    file.close()
+        fim = time.time() # prints total execution time for experiment
+        print( '\nExecution time: '+str(round((fim-ini)/60))+' minutes \n')
 
 
-    env.state_to_log() # checks environment state
+        file = open(experiment_name+'/neuroended', 'w')  # saves control (simulation has ended) file for bash loop file
+        file.close()
+
+
+        env.state_to_log() # checks environment state
