@@ -44,8 +44,18 @@ for i in range(10):
 ticks = [1,2,3]
 labels = ["Best", "Random", "No"]
 
-fig = plt.figure(figsize=(15,4))
-fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+print(np.max(gain_best_1))
+print(np.max(gain_best_2))
+print(np.max(gain_best_3))
+print(np.max(gain_random_1))
+print(np.max(gain_random_2))
+print(np.max(gain_random_3))
+print(np.max(gain_no_1))
+print(np.max(gain_no_2))
+print(np.max(gain_no_3))
+
+fig = plt.figure(figsize=(9,4))
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.2, hspace=0.0)
 ax1 = fig.add_subplot(1,3,1)
 ax1.boxplot([gain_best_1, gain_random_1, gain_no_1])
 ax1.set_xticks(ticks, labels)
