@@ -8,7 +8,7 @@ import math
 
 n_islands = 5
 gen = 20
-enemy = 3
+enemy = 1
 
 pops_m_best = {}
 pops_b_best = {}
@@ -185,7 +185,7 @@ ax2.set_xlabel("Generation")
 ax2.set_xticks(np.arange(0,21,5))
 # ax2.legend(loc="best")
 ax2.set_title(f"Average fitness for enemy {enemy}")
-fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.1, hspace=0.0)
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.15, hspace=0.0)
 
 # ax3.plot(x, abs_best_best, label="Best migration")
 # ax3.plot(x, abs_best_random, label="Random migration")
