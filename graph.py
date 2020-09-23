@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy import stats
 import csv
 import numpy as np
 import math
@@ -7,7 +8,7 @@ import math
 
 n_islands = 5
 gen = 20
-enemy = 3
+enemy = 1
 
 pops_m_best = {}
 pops_b_best = {}
@@ -153,9 +154,13 @@ for j in range(gen):
     abs_best_best.append(np.max(pops_b_best[j]))
     abs_best_random.append(np.max(pops_b_random[j]))
 
+print(len(mean_b_best))
+t_value = stats.ttest_ind(mean_b_best, mean_b_random)
+print(t_value)
+t_value1 = stats.ttest_ind(mean_m_best, mean_m_random)
+print(t_value1)
 
-
-fig = plt.figure()
+fig = plt.figure(figsize=(15,4))
 fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
 x = np.linspace(0,19,20)
 x1 = np.linspace(1,19,19)
@@ -165,29 +170,29 @@ ax3 = fig.add_subplot(1,3,3)
 ax1.errorbar(x, mean_b_best, std_b_best, label="Best migration", marker="o", capsize=5)
 ax1.errorbar(x, mean_b_random, std_b_random, label="Random migration", marker="o", capsize=5)
 ax1.errorbar(x1, mean_b_no, std_b_no, label="No migration", marker="o", capsize=5)
-# ax1.set_xlabel("Generation")
+ax1.set_xlabel("Generation")
 ax1.set_ylabel("Fitness")
 ax1.set_xticks(np.arange(0,21,5))
-# ax1.legend(loc="best")
+ax1.legend(loc="best")
 ax1.set_title(f"Average best fitness for enemy {enemy}")
 
 ax2.errorbar(x, mean_m_best, std_s_best, label="Best migration", marker="o", capsize=5)
 ax2.errorbar(x, mean_m_random, std_s_random, label="Random migration", marker="o", capsize=5)
 ax2.errorbar(x1, mean_m_no, std_s_no, label="No migration", marker="o", capsize=5)
 ax2.set_xlabel("Generation")
-# ax2.set_ylabel("Fitness")
+ax2.set_ylabel("Fitness")
 ax2.set_xticks(np.arange(0,21,5))
 ax2.legend(loc="best")
 ax2.set_title(f"Average fitness for enemy {enemy}")
 
-ax3.plot(x, abs_best_best, "o-", markersize=2, label="Best migration")
-ax3.plot(x, abs_best_random, "o-", markersize=2, label="Random migration")
-ax3.plot(x1, abs_best_no, "o-",  markersize=2, label="No migration")
-# ax3.set_xlabel("Generation")
-# ax3.set_ylabel("Fitness")
+ax3.plot(x, abs_best_best, label="Best migration")
+ax3.plot(x, abs_best_random, label="Random migration")
+ax3.plot(x1, abs_best_no, label="No migration")
+ax3.set_xlabel("Generation")
+ax3.set_ylabel("Fitness")
 ax3.set_xticks(np.arange(0,21,5))
-# ax3.legend(loc="best")
-ax3.set_title(f"Overall best fitness for enemy {enemy}")
+ax3.legend(loc="best")
+ax3.set_title(f"Best fitness for enemy {enemy}")
 # for i in range(n_islands):
 #     ax1.plot(x, pops_m[i])
 #     ax2.plot(x, pops_b[i])
