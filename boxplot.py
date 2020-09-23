@@ -44,7 +44,7 @@ for i in range(10):
 ticks = [1,2,3]
 labels = ["Best", "Random", "No"]
 
-fig = plt.figure()
+fig = plt.figure(figsize=(15,4))
 fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
 ax1 = fig.add_subplot(1,3,1)
 ax1.boxplot([gain_best_1, gain_random_1, gain_no_1])
